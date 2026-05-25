@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\StudioController;
 use App\Http\Controllers\StudioSessionController;
+use App\Http\Controllers\TrackController;
 use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'welcome')->name('home');
@@ -22,6 +23,15 @@ Route::middleware(['auth'])->group(function () {
 
     Route::delete('studio-sessions/{studioSession}', [StudioSessionController::class, 'destroy'])
         ->name('studio-sessions.destroy');
+
+    Route::post('studio-sessions/{studioSession}/tracks', [TrackController::class, 'store'])
+        ->name('studio-sessions.tracks.store');
+
+    Route::get('tracks/{track}/download', [TrackController::class, 'download'])
+        ->name('tracks.download');
+
+    Route::delete('tracks/{track}', [TrackController::class, 'destroy'])
+        ->name('tracks.destroy');
 
     Route::resource('studios', StudioController::class)
         ->except(['index', 'show']);

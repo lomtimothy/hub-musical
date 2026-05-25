@@ -96,6 +96,106 @@
                     @endforeach
                 </div>
             </div>
+            <div class="mt-8">
+                <h2 class="text-xl font-semibold text-zinc-900 dark:text-white">
+                    Archivos de la sesión
+                </h2>
+
+                @can('create', [App\Models\Track::class, $studioSession])
+                    <form
+                        method="POST"
+                        action="{{ route('studio-sessions.tracks.store', $studioSession) }}"
+                        enctype="multipart/form-data"
+                        class="mt-4 rounded-lg border border-dashed border-zinc-300 p-4 dark:border-zinc-700"
+                    >
+                        @csrf
+
+                        <label for="tracks" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                            Subir demos o pistas
+                        </label>
+
+                        <input
+                            id="tracks"
+                            name="tracks[]"
+                            type="file"
+                            multiple
+                            required
+                            accept=".wav,.mp3,audio/wav,audio/mpeg"
+                            class="mt-2 block w-full text-sm text-zinc-700 file:mr-4 file:rounded-lg file:border-0 file:bg-indigo-600 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-indigo-700 dark:text-zinc-300"
+                        >
+
+                        <p class="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
+                            Puedes subir hasta 5 archivos WAV o MP3 de máximo 50 MB cada uno.
+                        </p>
+
+                        @error('tracks')
+                            <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+
+                        @error('tracks.*')
+                            <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+
+                        <button
+                            type="submit"
+                            class="mt-4 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700"
+                        >
+                            Subir archivos
+                        </button>
+                    </form>
+                @endcan
+
+                <div class="mt-4 space-y-3">
+                    @forelse ($studioSession->tracks as $track)
+                        <div class="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
+                            <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+                                <div>
+                                    <p class="font-medium text-zinc-900 dark:text-white">
+                                        {{ $track->title }}
+                                    </p>
+
+                                    <p class="text-sm text-zinc-500 dark:text-zinc-400">
+                                        {{ $track->original_name }}
+                                        ·
+                                        {{ number_format($track->size / 1024 / 1024, 2) }} MB
+                                        ·
+                                        Subido por {{ $track->uploader->name }}
+                                    </p>
+                                </div>
+
+                                <div class="flex flex-wrap gap-2">
+                                    @can('view', $track)
+                                        <a
+                                            href="{{ route('tracks.download', $track) }}"
+                                            class="rounded-lg border border-zinc-300 px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                                        >
+                                            Descargar
+                                        </a>
+                                    @endcan
+
+                                    @can('delete', $track)
+                                        <form method="POST" action="{{ route('tracks.destroy', $track) }}" onsubmit="return confirm('¿Seguro que deseas eliminar este archivo?');">
+                                            @csrf
+                                            @method('DELETE')
+
+                                            <button
+                                                type="submit"
+                                                class="rounded-lg border border-red-300 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950"
+                                            >
+                                                Eliminar
+                                            </button>
+                                        </form>
+                                    @endcan
+                                </div>
+                            </div>
+                        </div>
+                    @empty
+                        <p class="text-zinc-600 dark:text-zinc-400">
+                            Todavía no hay archivos subidos para esta sesión.
+                        </p>
+                    @endforelse
+                </div>
+            </div>
 
             <div class="mt-8 flex flex-wrap gap-3">
                 @can('cancel', $studioSession)

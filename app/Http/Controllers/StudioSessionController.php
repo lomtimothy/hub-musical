@@ -13,9 +13,6 @@ class StudioSessionController extends Controller
 {
     use AuthorizesRequests;
 
-    /**
-     * Formulario para reservar una sesión en un estudio.
-     */
     public function create(Studio $studio): View
     {
         $this->authorize('create', [StudioSession::class, $studio]);
@@ -25,9 +22,6 @@ class StudioSessionController extends Controller
         ]);
     }
 
-    /**
-     * Guardar reserva.
-     */
     public function store(StoreStudioSessionRequest $request, Studio $studio): RedirectResponse
     {
         $validated = $request->validated();
@@ -47,9 +41,6 @@ class StudioSessionController extends Controller
             ->with('status', 'Sesión reservada correctamente.');
     }
 
-    /**
-     * Detalle de la sesión.
-     */
     public function show(StudioSession $studioSession): View
     {
         $this->authorize('view', $studioSession);
@@ -58,7 +49,7 @@ class StudioSessionController extends Controller
             'studio.owner',
             'booker',
             'musicians',
-            'tracks',
+            'tracks.uploader',
         ]);
 
         return view('studio-sessions.show', [
@@ -66,9 +57,6 @@ class StudioSessionController extends Controller
         ]);
     }
 
-    /**
-     * Cancelar sesión.
-     */
     public function destroy(StudioSession $studioSession): RedirectResponse
     {
         $this->authorize('cancel', $studioSession);
