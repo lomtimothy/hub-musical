@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\SplitSheetController;
 use App\Http\Controllers\StudioController;
 use App\Http\Controllers\StudioSessionController;
 use App\Http\Controllers\TrackController;
@@ -35,6 +36,9 @@ Route::middleware(['auth'])->group(function () {
 
     Route::resource('studios', StudioController::class)
         ->except(['index', 'show']);
+
+    Route::get('studio-sessions/{studioSession}/split-sheet', [SplitSheetController::class, 'download'])
+        ->name('studio-sessions.split-sheet');
 });
 
 Route::resource('studios', StudioController::class)
