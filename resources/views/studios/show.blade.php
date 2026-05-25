@@ -62,6 +62,17 @@
 
             <div class="mt-8 flex flex-wrap gap-3">
                 @auth
+                    @can('create', [App\Models\StudioSession::class, $studio])
+                        <a
+                            href="{{ route('studios.sessions.create', $studio) }}"
+                            class="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-green-700"
+                        >
+                            Reservar sesión
+                        </a>
+                    @endcan
+                @endauth
+
+                @auth
                     @can('update', $studio)
                         <a
                             href="{{ route('studios.edit', $studio) }}"
@@ -103,19 +114,37 @@
             <div class="mt-4 space-y-4">
                 @forelse ($studio->studioSessions as $session)
                     <div class="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
-                        <div class="flex flex-col justify-between gap-2 sm:flex-row">
+                        <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
                             <div>
                                 <p class="font-medium text-zinc-900 dark:text-white">
                                     {{ $session->title }}
                                 </p>
+
                                 <p class="text-sm text-zinc-500 dark:text-zinc-400">
                                     Reservado por {{ $session->booker->name }}
                                 </p>
+
+                                <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                                    {{ $session->starts_at->format('d/m/Y H:i') }}
+                                    —
+                                    {{ $session->ends_at->format('H:i') }}
+                                </p>
+
+                                <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                                    Estado: {{ ucfirst($session->status) }}
+                                </p>
                             </div>
 
-                            <p class="text-sm text-zinc-500 dark:text-zinc-400">
-                                {{ $session->starts_at->format('d/m/Y H:i') }}
-                            </p>
+                            @auth
+                                @can('view', $session)
+                                    <a
+                                        href="{{ route('studio-sessions.show', $session) }}"
+                                        class="inline-flex items-center justify-center rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                                    >
+                                        Ver sesión
+                                    </a>
+                                @endcan
+                            @endauth
                         </div>
                     </div>
                 @empty

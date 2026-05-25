@@ -14,9 +14,6 @@ class StudioController extends Controller
 {
     use AuthorizesRequests;
 
-    /**
-     * Listado público de estudios.
-     */
     public function index(): View
     {
         $this->authorize('viewAny', Studio::class);
@@ -32,9 +29,6 @@ class StudioController extends Controller
         ]);
     }
 
-    /**
-     * Formulario de creación.
-     */
     public function create(): View
     {
         $this->authorize('create', Studio::class);
@@ -44,9 +38,6 @@ class StudioController extends Controller
         ]);
     }
 
-    /**
-     * Guardar nuevo estudio.
-     */
     public function store(StoreStudioRequest $request): RedirectResponse
     {
         $studio = $request->user()->studios()->create($request->validatedData());
@@ -58,9 +49,6 @@ class StudioController extends Controller
             ->with('status', 'Estudio creado correctamente.');
     }
 
-    /**
-     * Detalle del estudio.
-     */
     public function show(Studio $studio): View
     {
         $this->authorize('view', $studio);
@@ -69,8 +57,14 @@ class StudioController extends Controller
             'owner',
             'tags',
             'studioSessions' => fn ($query) => $query
-                ->with('booker')
-                ->latest('starts_at')
+                ->with(['booker', 'musicians'])
+                ->where('starts_at', '>=', now())
+                ->where(function ($query): void {
+                    $query
+                        ->where('status', 'pending')
+                        ->orWhere('status', 'confirmed');
+                })
+                ->oldest('starts_at')
                 ->limit(5),
         ]);
 
@@ -79,9 +73,6 @@ class StudioController extends Controller
         ]);
     }
 
-    /**
-     * Formulario de edición.
-     */
     public function edit(Studio $studio): View
     {
         $this->authorize('update', $studio);
@@ -95,9 +86,6 @@ class StudioController extends Controller
         ]);
     }
 
-    /**
-     * Actualizar estudio.
-     */
     public function update(UpdateStudioRequest $request, Studio $studio): RedirectResponse
     {
         $studio->fill($request->validatedData());
@@ -110,9 +98,6 @@ class StudioController extends Controller
             ->with('status', 'Estudio actualizado correctamente.');
     }
 
-    /**
-     * Borrado lógico del estudio.
-     */
     public function destroy(Studio $studio): RedirectResponse
     {
         $this->authorize('delete', $studio);

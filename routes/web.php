@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\StudioController;
+use App\Http\Controllers\StudioSessionController;
 use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'welcome')->name('home');
@@ -10,6 +11,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
 });
 
 Route::middleware(['auth'])->group(function () {
+    Route::get('studios/{studio}/sessions/create', [StudioSessionController::class, 'create'])
+        ->name('studios.sessions.create');
+
+    Route::post('studios/{studio}/sessions', [StudioSessionController::class, 'store'])
+        ->name('studios.sessions.store');
+
+    Route::get('studio-sessions/{studioSession}', [StudioSessionController::class, 'show'])
+        ->name('studio-sessions.show');
+
+    Route::delete('studio-sessions/{studioSession}', [StudioSessionController::class, 'destroy'])
+        ->name('studio-sessions.destroy');
+
     Route::resource('studios', StudioController::class)
         ->except(['index', 'show']);
 });
