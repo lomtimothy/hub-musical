@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreStudioSessionRequest;
+use App\Mail\SessionReservedMail;
 use App\Models\Studio;
 use App\Models\StudioSession;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\View\View;
 
 class StudioSessionController extends Controller
@@ -35,6 +37,11 @@ class StudioSessionController extends Controller
             'instrument' => $validated['instrument'],
             'payment_split' => 100,
         ]);
+
+        $studioSession->load(['studio.owner', 'booker']);
+
+        Mail::to($studio->owner->email)
+            ->send(new SessionReservedMail($studioSession));
 
         return redirect()
             ->route('studio-sessions.show', $studioSession)
