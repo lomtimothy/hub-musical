@@ -21,6 +21,7 @@ class StudioSession extends Model
         'ends_at',
         'status',
         'total_price',
+        'reminder_sent_at',
     ];
 
     protected function casts(): array
@@ -29,6 +30,7 @@ class StudioSession extends Model
             'starts_at' => 'datetime',
             'ends_at' => 'datetime',
             'total_price' => 'decimal:2',
+            'reminder_sent_at' => 'datetime',
         ];
     }
 
