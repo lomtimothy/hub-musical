@@ -62,6 +62,124 @@
                         @enderror
                     </div>
 
+                    <div>
+                        <label for="payment_split" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                            Tu porcentaje de split
+                        </label>
+
+                        <input
+                            id="payment_split"
+                            name="payment_split"
+                            type="number"
+                            min="0"
+                            max="100"
+                            step="0.01"
+                            value="{{ old('payment_split', 100) }}"
+                            required
+                            class="mt-2 block w-full rounded-lg border-zinc-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white"
+                        >
+
+                        @error('payment_split')
+                            <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <div class="rounded-xl border border-zinc-200 p-4 dark:border-zinc-800">
+                        <div>
+                            <h2 class="text-lg font-semibold text-zinc-900 dark:text-white">
+                                Músicos adicionales
+                            </h2>
+
+                            <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                                Puedes agregar hasta 10 músicos más. La suma de splits debe ser 100%.
+                            </p>
+                        </div>
+
+                        @error('participants')
+                            <p class="mt-3 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+
+                        <div class="mt-4 space-y-4">
+                            @foreach (range(0, 9) as $index)
+                                <div class="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
+                                    <p class="mb-3 text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                                        Músico adicional {{ $index + 1 }}
+                                    </p>
+
+                                    <div class="grid gap-4 md:grid-cols-3">
+                                        <div>
+                                            <label for="participants_{{ $index }}_user_id" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                                                Músico
+                                            </label>
+
+                                            <select
+                                                id="participants_{{ $index }}_user_id"
+                                                name="participants[{{ $index }}][user_id]"
+                                                class="mt-2 block w-full rounded-lg border-zinc-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white"
+                                            >
+                                                <option value="">Sin músico</option>
+
+                                                @foreach ($musicians as $musician)
+                                                    <option
+                                                        value="{{ $musician->id }}"
+                                                        @selected(old("participants.{$index}.user_id") == $musician->id)
+                                                    >
+                                                        {{ $musician->name }} — {{ $musician->email }}
+                                                    </option>
+                                                @endforeach
+                                            </select>
+
+                                            @error("participants.{$index}.user_id")
+                                                <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                                            @enderror
+                                        </div>
+
+                                        <div>
+                                            <label for="participants_{{ $index }}_instrument" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                                                Instrumento o rol
+                                            </label>
+
+                                            <input
+                                                id="participants_{{ $index }}_instrument"
+                                                name="participants[{{ $index }}][instrument]"
+                                                type="text"
+                                                value="{{ old("participants.{$index}.instrument") }}"
+                                                placeholder="Ej. Bajo, Batería, Producción"
+                                                class="mt-2 block w-full rounded-lg border-zinc-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white"
+                                            >
+
+                                            @error("participants.{$index}.instrument")
+                                                <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                                            @enderror
+                                        </div>
+
+                                        <div>
+                                            <label for="participants_{{ $index }}_payment_split" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                                                Split
+                                            </label>
+
+                                            <input
+                                                id="participants_{{ $index }}_payment_split"
+                                                name="participants[{{ $index }}][payment_split]"
+                                                type="number"
+                                                min="0"
+                                                max="100"
+                                                step="0.01"
+                                                value="{{ old("participants.{$index}.payment_split") }}"
+                                                placeholder="Ej. 25"
+                                                class="mt-2 block w-full rounded-lg border-zinc-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white"
+                                            >
+
+                                            @error("participants.{$index}.payment_split")
+                                                <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                                            @enderror
+                                        </div>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+
                     <div class="grid gap-6 md:grid-cols-2">
                         <div>
                             <label for="starts_at" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">

@@ -6,8 +6,10 @@ use App\Http\Requests\StoreStudioSessionRequest;
 use App\Jobs\SendSessionReservedEmail;
 use App\Models\Studio;
 use App\Models\StudioSession;
+use App\Models\User;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
 class StudioSessionController extends Controller
@@ -18,8 +20,15 @@ class StudioSessionController extends Controller
     {
         $this->authorize('create', [StudioSession::class, $studio]);
 
+        $musicians = User::query()
+            ->where('role', 'musician')
+            ->whereKeyNot(Auth::id())
+            ->orderBy('name')
+            ->get(['id', 'name', 'email']);
+
         return view('studio-sessions.create', [
             'studio' => $studio,
+            'musicians' => $musicians,
         ]);
     }
 
@@ -34,8 +43,19 @@ class StudioSessionController extends Controller
 
         $studioSession->musicians()->attach($request->user()->id, [
             'instrument' => $validated['instrument'],
-            'payment_split' => 100,
+            'payment_split' => $validated['payment_split'],
         ]);
+
+        foreach (($validated['participants'] ?? []) as $participant) {
+            if (blank($participant['user_id'] ?? null)) {
+                continue;
+            }
+
+            $studioSession->musicians()->attach((int) $participant['user_id'], [
+                'instrument' => $participant['instrument'],
+                'payment_split' => $participant['payment_split'],
+            ]);
+        }
 
         SendSessionReservedEmail::dispatch($studioSession->id);
 

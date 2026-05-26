@@ -23,11 +23,17 @@ class StoreStudioSessionRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'title' => ['required', 'string', 'min:3', 'max:120'],
-            'notes' => ['nullable', 'string', 'max:2000'],
+            'title' => ['required', 'string', 'max:255'],
+            'instrument' => ['required', 'string', 'max:100'],
+            'payment_split' => ['required', 'numeric', 'min:0', 'max:100'],
             'starts_at' => ['required', 'date', 'after:now'],
             'ends_at' => ['required', 'date', 'after:starts_at'],
-            'instrument' => ['required', 'string', 'min:2', 'max:80'],
+            'notes' => ['nullable', 'string', 'max:2000'],
+
+            'participants' => ['nullable', 'array', 'max:10'],
+            'participants.*.user_id' => ['nullable', 'integer', 'exists:users,id', 'distinct'],
+            'participants.*.instrument' => ['nullable', 'string', 'max:100'],
+            'participants.*.payment_split' => ['nullable', 'numeric', 'min:0', 'max:100'],
         ];
     }
 
@@ -44,25 +50,70 @@ class StoreStudioSessionRequest extends FormRequest
                     return;
                 }
 
-                if (! $this->filled(['starts_at', 'ends_at'])) {
-                    return;
+                if ($this->filled(['starts_at', 'ends_at'])) {
+                    $hasConflict = StudioSession::query()
+                        ->where('studio_id', $studio->id)
+                        ->where(function ($query): void {
+                            $query
+                                ->where('status', 'pending')
+                                ->orWhere('status', 'confirmed');
+                        })
+                        ->where('starts_at', '<', $this->date('ends_at'))
+                        ->where('ends_at', '>', $this->date('starts_at'))
+                        ->exists();
+
+                    if ($hasConflict) {
+                        $validator->errors()->add(
+                            'starts_at',
+                            'El estudio ya tiene una sesión reservada en ese horario.'
+                        );
+                    }
                 }
 
-                $hasConflict = StudioSession::query()
-                    ->where('studio_id', $studio->id)
-                    ->where(function ($query): void {
-                        $query
-                            ->where('status', 'pending')
-                            ->orWhere('status', 'confirmed');
-                    })
-                    ->where('starts_at', '<', $this->date('ends_at'))
-                    ->where('ends_at', '>', $this->date('starts_at'))
-                    ->exists();
+                $participants = collect($this->input('participants', []))
+                    ->filter(fn ($participant) => filled($participant['user_id'] ?? null));
 
-                if ($hasConflict) {
+                $participantUserIds = $participants
+                    ->pluck('user_id')
+                    ->map(fn ($userId) => (int) $userId);
+
+                if ($participantUserIds->contains((int) $this->user()?->id)) {
                     $validator->errors()->add(
-                        'starts_at',
-                        'El estudio ya tiene una sesión reservada en ese horario.'
+                        'participants',
+                        'No puedes agregarte como músico adicional porque ya eres quien reserva la sesión.'
+                    );
+                }
+
+                if ($participantUserIds->duplicates()->isNotEmpty()) {
+                    $validator->errors()->add(
+                        'participants',
+                        'No puedes seleccionar el mismo músico adicional más de una vez.'
+                    );
+                }
+
+                foreach ($participants as $index => $participant) {
+                    if (blank($participant['instrument'] ?? null)) {
+                        $validator->errors()->add(
+                            "participants.{$index}.instrument",
+                            'El instrumento o rol del músico adicional es obligatorio.'
+                        );
+                    }
+
+                    if (blank($participant['payment_split'] ?? null)) {
+                        $validator->errors()->add(
+                            "participants.{$index}.payment_split",
+                            'El split del músico adicional es obligatorio.'
+                        );
+                    }
+                }
+
+                $totalSplit = (float) $this->input('payment_split', 0)
+                    + $participants->sum(fn ($participant) => (float) ($participant['payment_split'] ?? 0));
+
+                if (abs($totalSplit - 100) > 0.01) {
+                    $validator->errors()->add(
+                        'payment_split',
+                        'La suma de los splits debe ser exactamente 100%. Actualmente suma '.$totalSplit.'%.'
                     );
                 }
             },
@@ -76,12 +127,22 @@ class StoreStudioSessionRequest extends FormRequest
     {
         return [
             'title.required' => 'El título de la sesión es obligatorio.',
-            'title.min' => 'El título debe tener al menos :min caracteres.',
-            'starts_at.required' => 'La fecha y hora de inicio son obligatorias.',
+            'instrument.required' => 'Tu instrumento o rol musical es obligatorio.',
+            'payment_split.required' => 'Tu porcentaje de split es obligatorio.',
+            'payment_split.numeric' => 'Tu porcentaje de split debe ser numérico.',
+            'payment_split.min' => 'Tu porcentaje de split no puede ser menor a 0.',
+            'payment_split.max' => 'Tu porcentaje de split no puede ser mayor a 100.',
+            'starts_at.required' => 'La fecha y hora de inicio es obligatoria.',
             'starts_at.after' => 'La sesión debe iniciar en una fecha futura.',
-            'ends_at.required' => 'La fecha y hora de finalización son obligatorias.',
-            'ends_at.after' => 'La hora de finalización debe ser posterior al inicio.',
-            'instrument.required' => 'El instrumento o rol musical es obligatorio.',
+            'ends_at.required' => 'La fecha y hora de fin es obligatoria.',
+            'ends_at.after' => 'La sesión debe terminar después de la hora de inicio.',
+            'participants.max' => 'Solo puedes agregar hasta 10 músicos adicionales.',
+            'participants.*.user_id.exists' => 'Uno de los músicos seleccionados no existe.',
+            'participants.*.user_id.distinct' => 'No puedes seleccionar el mismo músico más de una vez.',
+            'participants.*.instrument.max' => 'El instrumento o rol del músico adicional no debe superar 100 caracteres.',
+            'participants.*.payment_split.numeric' => 'El split del músico adicional debe ser numérico.',
+            'participants.*.payment_split.min' => 'El split del músico adicional no puede ser menor a 0.',
+            'participants.*.payment_split.max' => 'El split del músico adicional no puede ser mayor a 100.',
         ];
     }
 
