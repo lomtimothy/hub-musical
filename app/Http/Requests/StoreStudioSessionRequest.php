@@ -22,6 +22,12 @@ class StoreStudioSessionRequest extends FormRequest
      */
     public function rules(): array
     {
+        $studio = $this->route('studio');
+
+        $maxAdditionalParticipants = $studio instanceof Studio
+            ? max($studio->capacity - 1, 0)
+            : 0;
+
         return [
             'title' => ['required', 'string', 'max:255'],
             'instrument' => ['required', 'string', 'max:100'],
@@ -30,7 +36,7 @@ class StoreStudioSessionRequest extends FormRequest
             'ends_at' => ['required', 'date', 'after:starts_at'],
             'notes' => ['nullable', 'string', 'max:2000'],
 
-            'participants' => ['nullable', 'array', 'max:10'],
+            'participants' => ['nullable', 'array', 'max:'.$maxAdditionalParticipants],
             'participants.*.user_id' => ['nullable', 'integer', 'exists:users,id', 'distinct'],
             'participants.*.instrument' => ['nullable', 'string', 'max:100'],
             'participants.*.payment_split' => ['nullable', 'numeric', 'min:0', 'max:100'],
@@ -72,6 +78,15 @@ class StoreStudioSessionRequest extends FormRequest
 
                 $participants = collect($this->input('participants', []))
                     ->filter(fn ($participant) => filled($participant['user_id'] ?? null));
+
+                $totalParticipants = 1 + $participants->count();
+
+                if ($totalParticipants > $studio->capacity) {
+                    $validator->errors()->add(
+                        'participants',
+                        "Este estudio solo permite {$studio->capacity} personas. Actualmente intentas reservar para {$totalParticipants} personas."
+                    );
+                }
 
                 $participantUserIds = $participants
                     ->pluck('user_id')
@@ -136,7 +151,7 @@ class StoreStudioSessionRequest extends FormRequest
             'starts_at.after' => 'La sesión debe iniciar en una fecha futura.',
             'ends_at.required' => 'La fecha y hora de fin es obligatoria.',
             'ends_at.after' => 'La sesión debe terminar después de la hora de inicio.',
-            'participants.max' => 'Solo puedes agregar hasta 10 músicos adicionales.',
+            'participants.max' => 'No puedes agregar más músicos de los que permite la capacidad del estudio.',
             'participants.*.user_id.exists' => 'Uno de los músicos seleccionados no existe.',
             'participants.*.user_id.distinct' => 'No puedes seleccionar el mismo músico más de una vez.',
             'participants.*.instrument.max' => 'El instrumento o rol del músico adicional no debe superar 100 caracteres.',

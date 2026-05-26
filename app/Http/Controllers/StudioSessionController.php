@@ -26,9 +26,12 @@ class StudioSessionController extends Controller
             ->orderBy('name')
             ->get(['id', 'name', 'email']);
 
+        $maxAdditionalParticipants = max($studio->capacity - 1, 0);
+
         return view('studio-sessions.create', [
             'studio' => $studio,
             'musicians' => $musicians,
+            'maxAdditionalParticipants' => $maxAdditionalParticipants,
         ]);
     }
 
