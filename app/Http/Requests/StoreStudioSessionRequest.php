@@ -56,6 +56,15 @@ class StoreStudioSessionRequest extends FormRequest
                     return;
                 }
 
+                $participants = collect($this->input('participants', []))
+                    ->filter(fn ($participant) => filled($participant['user_id'] ?? null));
+
+                $participantUserIds = $participants
+                    ->pluck('user_id')
+                    ->map(fn ($userId) => (int) $userId);
+
+                $currentUserId = (int) $this->user()?->id;
+
                 if ($this->filled(['starts_at', 'ends_at'])) {
                     $hasConflict = StudioSession::query()
                         ->where('studio_id', $studio->id)
@@ -76,9 +85,6 @@ class StoreStudioSessionRequest extends FormRequest
                     }
                 }
 
-                $participants = collect($this->input('participants', []))
-                    ->filter(fn ($participant) => filled($participant['user_id'] ?? null));
-
                 $totalParticipants = 1 + $participants->count();
 
                 if ($totalParticipants > $studio->capacity) {
@@ -88,11 +94,7 @@ class StoreStudioSessionRequest extends FormRequest
                     );
                 }
 
-                $participantUserIds = $participants
-                    ->pluck('user_id')
-                    ->map(fn ($userId) => (int) $userId);
-
-                if ($participantUserIds->contains((int) $this->user()?->id)) {
+                if ($participantUserIds->contains($currentUserId)) {
                     $validator->errors()->add(
                         'participants',
                         'No puedes agregarte como músico adicional porque ya eres quien reserva la sesión.'
@@ -104,6 +106,37 @@ class StoreStudioSessionRequest extends FormRequest
                         'participants',
                         'No puedes seleccionar el mismo músico adicional más de una vez.'
                     );
+                }
+
+                if ($this->filled(['starts_at', 'ends_at'])) {
+                    $musicianUserIds = $participantUserIds
+                        ->merge([$currentUserId])
+                        ->unique()
+                        ->values();
+
+                    $musicianScheduleConflict = StudioSession::query()
+                        ->where(function ($query): void {
+                            $query
+                                ->where('status', 'pending')
+                                ->orWhere('status', 'confirmed');
+                        })
+                        ->where('starts_at', '<', $this->date('ends_at'))
+                        ->where('ends_at', '>', $this->date('starts_at'))
+                        ->where(function ($query) use ($musicianUserIds): void {
+                            $query
+                                ->whereIn('booked_by', $musicianUserIds)
+                                ->orWhereHas('musicians', function ($query) use ($musicianUserIds): void {
+                                    $query->whereIn('users.id', $musicianUserIds);
+                                });
+                        })
+                        ->exists();
+
+                    if ($musicianScheduleConflict) {
+                        $validator->errors()->add(
+                            'participants',
+                            'Uno o más músicos ya tienen otra sesión reservada en ese horario.'
+                        );
+                    }
                 }
 
                 foreach ($participants as $index => $participant) {

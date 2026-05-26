@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Studio;
+use App\Models\StudioSession;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -243,5 +244,150 @@ test('session reservation succeeds when participants match studio capacity', fun
     assertDatabaseHas('studio_sessions', [
         'title' => 'Sesión dentro de capacidad',
         'booked_by' => $booker->id,
+    ]);
+});
+
+test('session reservation fails when additional musician has another session at the same time', function () {
+    $producerOne = User::factory()->producer()->create();
+    $producerTwo = User::factory()->producer()->create();
+
+    $bookerOne = User::factory()->musician()->create();
+    $bookerTwo = User::factory()->musician()->create();
+
+    $busyMusician = User::factory()->musician()->create();
+
+    $studioOne = Studio::factory()->active()->create([
+        'owner_id' => $producerOne->id,
+        'capacity' => 5,
+    ]);
+
+    $studioTwo = Studio::factory()->active()->create([
+        'owner_id' => $producerTwo->id,
+        'capacity' => 5,
+    ]);
+
+    $existingSession = StudioSession::factory()->confirmed()->create([
+        'studio_id' => $studioOne->id,
+        'booked_by' => $bookerOne->id,
+        'starts_at' => now()->addDay()->setTime(12, 0),
+        'ends_at' => now()->addDay()->setTime(14, 0),
+    ]);
+
+    $existingSession->musicians()->attach($busyMusician->id, [
+        'instrument' => 'Guitarra',
+        'payment_split' => 100,
+    ]);
+
+    $response = actingAs($bookerTwo)
+        ->post(route('studios.sessions.store', $studioTwo), [
+            'title' => 'Sesión con músico ocupado',
+            'instrument' => 'Voz',
+            'payment_split' => 50,
+            'starts_at' => now()->addDay()->setTime(13, 0)->format('Y-m-d H:i:s'),
+            'ends_at' => now()->addDay()->setTime(15, 0)->format('Y-m-d H:i:s'),
+            'participants' => [
+                [
+                    'user_id' => $busyMusician->id,
+                    'instrument' => 'Guitarra',
+                    'payment_split' => 50,
+                ],
+            ],
+        ]);
+
+    $response->assertSessionHasErrors('participants');
+});
+
+test('session reservation fails when booker has another session at the same time', function () {
+    $producerOne = User::factory()->producer()->create();
+    $producerTwo = User::factory()->producer()->create();
+
+    $booker = User::factory()->musician()->create();
+
+    $studioOne = Studio::factory()->active()->create([
+        'owner_id' => $producerOne->id,
+        'capacity' => 5,
+    ]);
+
+    $studioTwo = Studio::factory()->active()->create([
+        'owner_id' => $producerTwo->id,
+        'capacity' => 5,
+    ]);
+
+    $existingSession = StudioSession::factory()->confirmed()->create([
+        'studio_id' => $studioOne->id,
+        'booked_by' => $booker->id,
+        'starts_at' => now()->addDay()->setTime(12, 0),
+        'ends_at' => now()->addDay()->setTime(14, 0),
+    ]);
+
+    $existingSession->musicians()->attach($booker->id, [
+        'instrument' => 'Voz',
+        'payment_split' => 100,
+    ]);
+
+    $response = actingAs($booker)
+        ->post(route('studios.sessions.store', $studioTwo), [
+            'title' => 'Segunda sesión empalmada',
+            'instrument' => 'Voz',
+            'payment_split' => 100,
+            'starts_at' => now()->addDay()->setTime(13, 0)->format('Y-m-d H:i:s'),
+            'ends_at' => now()->addDay()->setTime(15, 0)->format('Y-m-d H:i:s'),
+        ]);
+
+    $response->assertSessionHasErrors('participants');
+});
+
+test('session reservation succeeds when musician sessions do not overlap', function () {
+    $producerOne = User::factory()->producer()->create();
+    $producerTwo = User::factory()->producer()->create();
+
+    $bookerOne = User::factory()->musician()->create();
+    $bookerTwo = User::factory()->musician()->create();
+
+    $busyMusician = User::factory()->musician()->create();
+
+    $studioOne = Studio::factory()->active()->create([
+        'owner_id' => $producerOne->id,
+        'capacity' => 5,
+    ]);
+
+    $studioTwo = Studio::factory()->active()->create([
+        'owner_id' => $producerTwo->id,
+        'capacity' => 5,
+    ]);
+
+    $existingSession = StudioSession::factory()->confirmed()->create([
+        'studio_id' => $studioOne->id,
+        'booked_by' => $bookerOne->id,
+        'starts_at' => now()->addDay()->setTime(9, 0),
+        'ends_at' => now()->addDay()->setTime(11, 0),
+    ]);
+
+    $existingSession->musicians()->attach($busyMusician->id, [
+        'instrument' => 'Guitarra',
+        'payment_split' => 100,
+    ]);
+
+    $response = actingAs($bookerTwo)
+        ->post(route('studios.sessions.store', $studioTwo), [
+            'title' => 'Sesión sin empalme de músico',
+            'instrument' => 'Voz',
+            'payment_split' => 50,
+            'starts_at' => now()->addDay()->setTime(12, 0)->format('Y-m-d H:i:s'),
+            'ends_at' => now()->addDay()->setTime(14, 0)->format('Y-m-d H:i:s'),
+            'participants' => [
+                [
+                    'user_id' => $busyMusician->id,
+                    'instrument' => 'Guitarra',
+                    'payment_split' => 50,
+                ],
+            ],
+        ]);
+
+    $response->assertSessionHasNoErrors();
+
+    assertDatabaseHas('studio_sessions', [
+        'title' => 'Sesión sin empalme de músico',
+        'booked_by' => $bookerTwo->id,
     ]);
 });

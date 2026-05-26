@@ -94,6 +94,7 @@
             Este estudio permite {{ $studio->capacity }} personas en total, incluyéndote a ti.
             Puedes agregar hasta {{ $maxAdditionalParticipants }} músicos adicionales.
             La suma de splits debe ser 100%.
+            No se puede agregar un músico si ya tiene otra sesión en el mismo horario.
         </p>
     </div>
 
