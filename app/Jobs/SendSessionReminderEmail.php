@@ -23,7 +23,6 @@ class SendSessionReminderEmail implements ShouldQueue
             ->findOrFail($this->studioSessionId);
 
         Mail::to($studioSession->booker->email)
-            ->cc($studioSession->studio->owner->email)
             ->send(new SessionReminderMail($studioSession));
     }
 }

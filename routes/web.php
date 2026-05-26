@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Auth\GitHubAuthController;
 use App\Http\Controllers\SplitSheetController;
 use App\Http\Controllers\StudioController;
 use App\Http\Controllers\StudioSessionController;
@@ -7,6 +8,12 @@ use App\Http\Controllers\TrackController;
 use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'welcome')->name('home');
+
+Route::get('auth/github/redirect', [GitHubAuthController::class, 'redirect'])
+    ->name('auth.github.redirect');
+
+Route::get('auth/github/callback', [GitHubAuthController::class, 'callback'])
+    ->name('auth.github.callback');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::view('dashboard', 'dashboard')->name('dashboard');
