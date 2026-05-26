@@ -22,6 +22,11 @@ class StudioSession extends Model
         'status',
         'total_price',
         'reminder_sent_at',
+        'payment_status',
+        'stripe_checkout_session_id',
+        'stripe_payment_intent_id',
+        'amount_paid',
+        'paid_at',
     ];
 
     protected function casts(): array
@@ -31,6 +36,8 @@ class StudioSession extends Model
             'ends_at' => 'datetime',
             'total_price' => 'decimal:2',
             'reminder_sent_at' => 'datetime',
+            'amount_paid' => 'decimal:2',
+            'paid_at' => 'datetime',
         ];
     }
 

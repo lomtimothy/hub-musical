@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Auth\GitHubAuthController;
+use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\SplitSheetController;
 use App\Http\Controllers\StudioController;
 use App\Http\Controllers\StudioSessionController;
@@ -8,6 +9,9 @@ use App\Http\Controllers\TrackController;
 use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'welcome')->name('home');
+
+Route::post('stripe/webhook', [PaymentController::class, 'webhook'])
+    ->name('stripe.webhook');
 
 Route::get('auth/github/redirect', [GitHubAuthController::class, 'redirect'])
     ->name('auth.github.redirect');
@@ -32,6 +36,15 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('studio-sessions/{studioSession}', [StudioSessionController::class, 'destroy'])
         ->name('studio-sessions.destroy');
 
+    Route::get('studio-sessions/{studioSession}/split-sheet', [SplitSheetController::class, 'download'])
+        ->name('studio-sessions.split-sheet');
+
+    Route::post('studio-sessions/{studioSession}/checkout', [PaymentController::class, 'checkout'])
+        ->name('payments.checkout');
+
+    Route::get('payments/success', [PaymentController::class, 'success'])
+        ->name('payments.success');
+
     Route::post('studio-sessions/{studioSession}/tracks', [TrackController::class, 'store'])
         ->name('studio-sessions.tracks.store');
 
@@ -43,9 +56,6 @@ Route::middleware(['auth'])->group(function () {
 
     Route::resource('studios', StudioController::class)
         ->except(['index', 'show']);
-
-    Route::get('studio-sessions/{studioSession}/split-sheet', [SplitSheetController::class, 'download'])
-        ->name('studio-sessions.split-sheet');
 });
 
 Route::resource('studios', StudioController::class)

@@ -15,7 +15,7 @@
                 {{ $studioSession->title }}
             </h1>
 
-            <div class="mt-6 grid gap-6 md:grid-cols-3">
+            <div class="mt-6 grid gap-6 md:grid-cols-4">
                 <div>
                     <p class="text-sm text-zinc-500 dark:text-zinc-400">Inicio</p>
                     <p class="font-medium text-zinc-900 dark:text-white">
@@ -34,6 +34,18 @@
                     <p class="text-sm text-zinc-500 dark:text-zinc-400">Estado</p>
                     <p class="font-medium text-zinc-900 dark:text-white">
                         {{ ucfirst($studioSession->status) }}
+                    </p>
+                </div>
+
+                <div>
+                    <p class="text-sm text-zinc-500 dark:text-zinc-400">Pago</p>
+                    <p class="font-medium text-zinc-900 dark:text-white">
+                        {{ [
+                            'unpaid' => 'Pendiente de pago',
+                            'pending' => 'Pago en proceso',
+                            'paid' => 'Pagado',
+                            'failed' => 'Fallido',
+                        ][$studioSession->payment_status] ?? ucfirst($studioSession->payment_status) }}
                     </p>
                 </div>
             </div>
@@ -222,6 +234,26 @@
                         Descargar Split Sheet PDF
                     </a>
                 @endcan
+
+                @if ($studioSession->payment_status === 'paid')
+                    <span class="rounded-lg bg-green-100 px-4 py-2 text-sm font-medium text-green-800 dark:bg-green-950 dark:text-green-300">
+                        Pago confirmado
+                    </span>
+                @else
+                    @can('pay', $studioSession)
+                        <form method="POST" action="{{ route('payments.checkout', $studioSession) }}">
+                            @csrf
+
+                            <button
+                                type="submit"
+                                class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700"
+                            >
+                                Pagar reserva
+                            </button>
+                        </form>
+                    @endcan
+                @endif
+
                 <a
                     href="{{ route('studios.show', $studioSession->studio) }}"
                     class="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"

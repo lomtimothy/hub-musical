@@ -27,4 +27,11 @@ class StudioSessionPolicy
         return $user->isAdmin()
             || $user->id === $studioSession->booked_by;
     }
+
+    public function pay(User $user, StudioSession $studioSession): bool
+    {
+        return ($user->isAdmin() || $user->id === $studioSession->booked_by)
+            && $studioSession->status !== 'cancelled'
+            && $studioSession->payment_status !== 'paid';
+    }
 }
