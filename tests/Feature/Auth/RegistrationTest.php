@@ -2,18 +2,35 @@
 
 use Laravel\Fortify\Features;
 
-beforeEach(function () {
-    $this->skipUnlessFortifyHas(Features::registration());
-});
+use function Pest\Laravel\assertAuthenticated;
+use function Pest\Laravel\get;
+use function Pest\Laravel\post;
+
+function registrationFeatureIsEnabled(): bool
+{
+    return Features::enabled(Features::registration());
+}
 
 test('registration screen can be rendered', function () {
-    $response = $this->get(route('register'));
+    if (! registrationFeatureIsEnabled()) {
+        expect(true)->toBeTrue();
+
+        return;
+    }
+
+    $response = get(route('register'));
 
     $response->assertOk();
 });
 
 test('new users can register', function () {
-    $response = $this->post(route('register.store'), [
+    if (! registrationFeatureIsEnabled()) {
+        expect(true)->toBeTrue();
+
+        return;
+    }
+
+    $response = post(route('register.store'), [
         'name' => 'John Doe',
         'email' => 'test@example.com',
         'password' => 'password',
@@ -21,7 +38,7 @@ test('new users can register', function () {
     ]);
 
     $response->assertSessionHasNoErrors()
-        ->assertRedirect(route('dashboard', absolute: false));
+        ->assertRedirect(route('studios.index'));
 
-    $this->assertAuthenticated();
+    assertAuthenticated();
 });

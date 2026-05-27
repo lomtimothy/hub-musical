@@ -31,7 +31,7 @@ test('github callback creates a new musician user and authenticates them', funct
 
     $response = get(route('auth.github.callback'));
 
-    $response->assertRedirect(route('dashboard'));
+    $response->assertRedirect(route('studios.index'));
 
     expect(Auth::check())->toBeTrue();
 
